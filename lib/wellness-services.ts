@@ -12,8 +12,8 @@ export type WellnessService = {
 export const WELLNESS_SERVICES: WellnessService[] = [
   {
     id: "rest_floating",
-    brandExact: "REST Floating Therapy",
-    variants: ["float therapy", "float tank", "sensory deprivation tank", "float pod", "isolation tank"],
+    brandExact: "REST Float Therapy",
+    variants: ["float therapy", "REST floating therapy", "float tank", "sensory deprivation tank", "float pod", "isolation tank"],
     outcomes: ["chronic stress", "insomnia", "anxiety", "nervous system reset", "deep recovery"],
   },
   {

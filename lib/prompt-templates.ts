@@ -39,12 +39,12 @@ export const PROMPT_TEMPLATES: PromptTemplate[] = [
 
   // Premium / private framing — captures executive + luxury intent
   { id: "private_service_region", intent: "discovery_premium", template: "private {service} {region}", requiresField: ["service", "region"] },
-  { id: "luxury_wellness_region", intent: "discovery_premium", template: "luxury wellness spa {region}", requiresField: ["region"] },
+  { id: "luxury_wellness_region", intent: "discovery_premium", template: "luxury recovery lab in {region}", requiresField: ["region"] },
   { id: "exec_wellness_region", intent: "discovery_premium", template: "where executives recover from burnout in {region}", requiresField: ["region"] },
 
   // Outcome-based — how LLMs reframe queries
   { id: "recover_condition_region", intent: "outcome_geo", template: "where to recover from {condition} in {region}", requiresField: ["condition", "region"] },
-  { id: "wellness_for_condition", intent: "outcome_geo", template: "wellness spa for {condition} {region}", requiresField: ["condition", "region"] },
+  { id: "wellness_for_condition", intent: "outcome_geo", template: "wellness recovery for {condition} in {region}", requiresField: ["condition", "region"] },
   { id: "service_for_condition", intent: "outcome_geo", template: "{service} for {condition}", requiresField: ["service", "condition"] },
 
   // Comparison — high leverage, under-served
@@ -57,11 +57,11 @@ export const PROMPT_TEMPLATES: PromptTemplate[] = [
   { id: "branded_reviews", intent: "branded", template: "{brand} reviews", requiresField: ["brand"] },
 
   // Brand-exact — drives entity authority for your service names
-  { id: "brand_exact_near_me", intent: "brand_exact", template: "{service} near me {region}", requiresField: ["service", "region"] },
-  { id: "brand_exact_city", intent: "brand_exact", template: "{service} {city}", requiresField: ["service", "city"] },
+  { id: "brand_exact_near_me", intent: "brand_exact", template: "{service} in {region}", requiresField: ["service", "region"] },
+  { id: "brand_exact_city", intent: "brand_exact", template: "{service} in {city}", requiresField: ["service", "city"] },
 
-  // Stacked modality — for spas offering combos
-  { id: "service_plus_city", intent: "stacked_modality", template: "{service} {city}", requiresField: ["service", "city"] },
+  // Stacked modality — for businesses offering combos
+  { id: "service_plus_city", intent: "stacked_modality", template: "{service} in {city}", requiresField: ["service", "city"] },
 
   // Audience-targeted
   { id: "service_for_audience", intent: "audience", template: "{service} for {audience}", requiresField: ["service", "audience"] },
