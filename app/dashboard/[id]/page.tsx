@@ -86,8 +86,13 @@ export default async function ProfileDashboard({ params }: { params: Promise<{ i
             </div>
           )}
 
-          <div style={{ marginBottom: "var(--space-3)" }}>
+          <div style={{ marginBottom: "var(--space-3)", display: "flex", gap: "var(--space-2)", flexWrap: "wrap", alignItems: "center" }}>
             <RunScanButton profileId={id} />
+            {latest && (
+              <Link href={`/dashboard/${id}/outreach`} className="btn btn-secondary">
+                Open Outreach →
+              </Link>
+            )}
           </div>
 
           {!latest ? (
