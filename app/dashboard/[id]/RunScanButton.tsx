@@ -18,23 +18,34 @@ export default function RunScanButton({ profileId }: { profileId: string }) {
         body: JSON.stringify({ profileId, maxPrompts: 12 }),
       });
       if (!res.ok) {
-        setError(`Scan failed (${res.status})`);
-      } else {
-        router.refresh();
+        const text = await res.text().catch(() => "");
+        setError(text || `Scan failed (${res.status}). Check your API keys in Railway.`);
+        setRunning(false);
+        return;
       }
-    } catch (e: any) {
-      setError(e?.message ?? "Scan failed");
-    } finally {
+      router.refresh();
+      setRunning(false);
+    } catch {
+      setError("Network error. The scan may still be running — refresh in a minute.");
       setRunning(false);
     }
   };
 
   return (
     <div>
-      <button onClick={run} disabled={running}>
-        {running ? "Scanning across all surfaces… this takes ~2 min" : "Run scan"}
+      <button onClick={run} disabled={running} className="btn" aria-busy={running}>
+        {running ? "Scanning every surface…" : "Run Scan"}
       </button>
-      {error && <p className="hint" style={{ color: "#b54a3c" }}>{error}</p>}
+      {running && (
+        <p className="hint" style={{ marginTop: 12 }} aria-live="polite">
+          Querying ChatGPT, Perplexity, and Claude. About 60–90 seconds. You can leave this page open.
+        </p>
+      )}
+      {error && (
+        <div className="notice notice-error" role="alert" style={{ marginTop: 16 }}>
+          <strong>Scan didn't complete.</strong> {error}
+        </div>
+      )}
     </div>
   );
 }
