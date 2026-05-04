@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 
 // Drafts a pitch email to a publisher whose URLs are getting cited by AI
 // for queries the brand wasn't cited on. Voice = founder, direct, no hedging.
-const SYSTEM_PROMPT = `You write inclusion-pitch emails on behalf of Natasha Berness, Founder & CEO of SoliVana Wellness in Redwood City, CA. SoliVana is an AI-native nervous system reset lab — never describe it as a spa, day spa, med spa, gym, or wellness center.
+const SYSTEM_PROMPT = `You write inclusion-pitch emails on behalf of Natasha Berness, Co-Founder & CEO of SoliVana Wellness Lab in Redwood City, CA. Co-founded with Anna Berness, Co-Founder & CMO. SoliVana is an AI-native nervous system reset lab — never describe it as a spa, day spa, med spa, or gym. "Wellness center" is acceptable when "lab" or "recovery lab" doesn't fit the sentence.
 
 Voice rules (non-negotiable):
 - Direct, declarative, zero hedging. No "I hope this finds you well." No "I would love to."
