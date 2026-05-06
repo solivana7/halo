@@ -1,10 +1,10 @@
 import { generatePrompts, type BusinessProfile } from "./prompt-templates";
-import { QUERIERS } from "./queriers";
+import { QUERIERS, ALL_SURFACES, type Surface } from "./queriers";
 import { analyzeResult, type BrandIdentity } from "./analyzer";
 import { saveScan, type ScanRecord } from "./storage";
 
 export type RunOptions = {
-  surfaces?: ("perplexity" | "claude" | "openai")[];
+  surfaces?: Surface[];
   maxPrompts?: number;
   concurrency?: number;
 };
@@ -24,12 +24,16 @@ async function pMap<T, R>(items: T[], fn: (t: T) => Promise<R>, concurrency: num
 }
 
 export async function runScan(
-  profile: BusinessProfile & { id: string; domain?: string },
+  profile: BusinessProfile & { id: string; domain?: string; aliases?: string[] },
   opts: RunOptions = {}
 ): Promise<ScanRecord> {
-  const surfaces = opts.surfaces ?? ["perplexity", "claude", "openai"];
+  const surfaces = opts.surfaces ?? Array.from(ALL_SURFACES);
   const prompts = generatePrompts(profile, { max: opts.maxPrompts ?? 20 });
-  const brand: BrandIdentity = { brand: profile.brand, domain: profile.domain };
+  const brand: BrandIdentity = {
+    brand: profile.brand,
+    domain: profile.domain,
+    aliases: profile.aliases,
+  };
   const competitors = profile.competitors ?? [];
 
   const jobs: Array<{ surface: string; query: string }> = [];
@@ -39,6 +43,19 @@ export async function runScan(
     jobs,
     async ({ surface, query }) => {
       const fn = QUERIERS[surface];
+      if (!fn) {
+        return {
+          surface,
+          query,
+          cited: false,
+          position: null,
+          brandUrlCited: false,
+          competitorsMentioned: [],
+          answer: "",
+          citations: [],
+          error: `Unknown surface: ${surface}`,
+        };
+      }
       const res = await fn(query);
       const a = analyzeResult(res, brand, competitors);
       return {

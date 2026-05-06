@@ -46,6 +46,7 @@ export async function listScans(): Promise<ScanRecord[]> {
 export type ProfileRecord = {
   id: string;
   brand: string;
+  aliases?: string[]; // alternate brand names that should also count as a citation
   domain?: string;
   city: string;
   region: string;
