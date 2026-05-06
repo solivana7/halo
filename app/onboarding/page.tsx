@@ -116,7 +116,7 @@ export default function Onboarding() {
                 type="text"
                 value={form.aliases}
                 onChange={(e) => update("aliases", e.target.value)}
-                placeholder="SoliVana Wellness Lab, SoliVana"
+                placeholder="SoliVana, SoliVana Wellness Spa"
               />
               <p className="hint">Optional. Comma-separated alternate names that should also count as a citation. Useful when AI surfaces still know your brand by an older name.</p>
             </div>
