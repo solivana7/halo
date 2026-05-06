@@ -7,6 +7,7 @@ export async function POST(req: Request) {
   const record: ProfileRecord = {
     id,
     brand: body.brand,
+    aliases: body.aliases ?? [],
     domain: body.domain,
     city: body.city,
     region: body.region,

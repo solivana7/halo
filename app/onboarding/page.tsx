@@ -12,6 +12,7 @@ export default function Onboarding() {
   const [error, setError] = useState<string | null>(null);
   const [form, setForm] = useState({
     brand: "",
+    aliases: "",
     domain: "",
     city: "",
     region: "",
@@ -41,6 +42,7 @@ export default function Onboarding() {
     try {
       const payload = {
         brand: form.brand.trim(),
+        aliases: form.aliases.split(",").map((s) => s.trim()).filter(Boolean),
         domain: form.domain.trim() || undefined,
         city: form.city.trim(),
         region: form.region.trim(),
@@ -108,13 +110,25 @@ export default function Onboarding() {
             </div>
 
             <div className="field">
+              <label htmlFor="aliases">Brand aliases</label>
+              <input
+                id="aliases"
+                type="text"
+                value={form.aliases}
+                onChange={(e) => update("aliases", e.target.value)}
+                placeholder="SoliVana Wellness Lab, SoliVana"
+              />
+              <p className="hint">Optional. Comma-separated alternate names that should also count as a citation. Useful when AI surfaces still know your brand by an older name.</p>
+            </div>
+
+            <div className="field">
               <label htmlFor="domain">Website</label>
               <input
                 id="domain"
                 type="text"
                 value={form.domain}
                 onChange={(e) => update("domain", e.target.value)}
-                placeholder="solivana.com"
+                placeholder="www.solivana.com"
                 autoComplete="url"
                 inputMode="url"
               />

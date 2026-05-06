@@ -2,21 +2,21 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getProfile, listScans } from "@/lib/storage";
 import { generatePrompts } from "@/lib/prompt-templates";
-import { SURFACE_LABELS } from "@/lib/queriers";
+import { SURFACE_LABELS, SURFACE_ENV_VARS, ALL_SURFACES, type Surface } from "@/lib/queriers";
 import RunScanButton from "./RunScanButton";
 import Header from "../../_components/Header";
 import Footer from "../../_components/Footer";
 
 export const dynamic = "force-dynamic";
 
-type StatusResp = { perplexity: boolean; claude: boolean; openai: boolean };
+type StatusResp = Record<Surface, boolean>;
 
-async function getStatus(): Promise<StatusResp | null> {
-  // Server-side internal fetch is brittle; read env directly.
+async function getStatus(): Promise<StatusResp> {
   return {
     perplexity: Boolean(process.env.PERPLEXITY_API_KEY),
     claude: Boolean(process.env.ANTHROPIC_API_KEY),
     openai: Boolean(process.env.OPENAI_API_KEY),
+    gemini: Boolean(process.env.GOOGLE_AI_API_KEY),
   };
 }
 
@@ -29,9 +29,7 @@ export default async function ProfileDashboard({ params }: { params: Promise<{ i
   const scans = allScans.filter((s) => s.profileId === id);
   const latest = scans[0];
   const status = await getStatus();
-  const missingKeys = status
-    ? (["perplexity", "claude", "openai"] as const).filter((k) => !status[k])
-    : [];
+  const missingKeys = ALL_SURFACES.filter((k) => !status[k]);
 
   const prompts = generatePrompts({
     brand: profile.brand,
@@ -44,7 +42,7 @@ export default async function ProfileDashboard({ params }: { params: Promise<{ i
     audiences: profile.audiences,
   });
 
-  const surfaces = ["perplexity", "claude", "openai"] as const;
+  const surfaces = ALL_SURFACES;
   const queries = Array.from(new Set((latest?.results ?? []).map((r) => r.query)));
   const cell = (surface: string, query: string) =>
     latest?.results.find((r) => r.surface === surface && r.query === query);
@@ -77,7 +75,7 @@ export default async function ProfileDashboard({ params }: { params: Promise<{ i
                 {missingKeys.map((k) => (
                   <li key={k}>
                     <code style={{ background: "rgba(180,159,144,0.18)", padding: "1px 6px" }}>
-                      {k === "perplexity" ? "PERPLEXITY_API_KEY" : k === "claude" ? "ANTHROPIC_API_KEY" : "OPENAI_API_KEY"}
+                      {SURFACE_ENV_VARS[k]}
                     </code>
                   </li>
                 ))}
@@ -93,6 +91,9 @@ export default async function ProfileDashboard({ params }: { params: Promise<{ i
                 Open Outreach →
               </Link>
             )}
+            <Link href={`/dashboard/${id}/schema`} className="btn btn-secondary">
+              Schema Generator →
+            </Link>
           </div>
 
           {!latest ? (
