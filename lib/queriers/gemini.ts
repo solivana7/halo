@@ -29,12 +29,16 @@ export async function queryGemini(query: string): Promise<LLMQueryResult> {
 
   try {
     const client = new GoogleGenerativeAI(key);
-    const modelName = process.env.GEMINI_MODEL ?? DEFAULT_MODEL;
-
-    // Pick the right grounding tool for this model generation.
-    const groundingTool = isGemini2OrNewer(modelName)
-      ? { googleSearch: {} }
-      : { googleSearchRetrieval: {} };
+    // Defensive: GEMINI_MODEL env var has caused issues (stale value
+    // routing to a 2.0+ model the installed SDK can't pass `googleSearch`
+    // to). Override any env value pointing at flash-latest/2.x/3.x
+    // to the known-working 1.5-flash + googleSearchRetrieval combo.
+    let modelName = process.env.GEMINI_MODEL ?? DEFAULT_MODEL;
+    if (isGemini2OrNewer(modelName)) {
+      console.warn("[gemini] env model", modelName, "needs newer SDK. Forcing", DEFAULT_MODEL);
+      modelName = DEFAULT_MODEL;
+    }
+    const groundingTool = { googleSearchRetrieval: {} };
 
     const model = client.getGenerativeModel({
       model: modelName,
