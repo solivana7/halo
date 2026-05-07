@@ -18,6 +18,7 @@ export default function Onboarding() {
     region: "",
     adjacentCities: "",
     serviceIds: [] as string[],
+    customServices: "",
     focusOutcomes: "",
     competitors: "",
     audiences: "",
@@ -48,6 +49,7 @@ export default function Onboarding() {
         region: form.region.trim(),
         adjacentCities: form.adjacentCities.split(",").map((s) => s.trim()).filter(Boolean),
         serviceIds: form.serviceIds,
+        customServices: form.customServices.split(",").map((s) => s.trim()).filter(Boolean),
         focusOutcomes: form.focusOutcomes.split(",").map((s) => s.trim()).filter(Boolean),
         competitors: form.competitors.split(",").map((s) => s.trim()).filter(Boolean),
         audiences: form.audiences.split(",").map((s) => s.trim()).filter(Boolean),
@@ -194,6 +196,18 @@ export default function Onboarding() {
                   ))}
                 </div>
               </fieldset>
+            </div>
+
+            <div className="field">
+              <label htmlFor="custom-services">Add your own services</label>
+              <input
+                id="custom-services"
+                type="text"
+                value={form.customServices}
+                onChange={(e) => update("customServices", e.target.value)}
+                placeholder="Cold Plunge, Infrared Sauna, Tuning Forks"
+              />
+              <p className="hint">Optional. Comma-separated. Anything you offer that isn&rsquo;t on the checkbox list above. We&rsquo;ll generate prompts for these too.</p>
             </div>
 
             <div className="field">

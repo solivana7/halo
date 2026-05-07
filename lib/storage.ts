@@ -52,6 +52,7 @@ export type ProfileRecord = {
   region: string;
   adjacentCities?: string[];
   serviceIds: string[];
+  customServices?: string[]; // user-defined service names not in the catalog
   focusOutcomes?: string[];
   competitors?: string[];
   audiences?: string[];
