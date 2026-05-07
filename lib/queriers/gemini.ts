@@ -11,8 +11,13 @@ export async function queryGemini(query: string): Promise<LLMQueryResult> {
 
   try {
     const client = new GoogleGenerativeAI(key);
+    // Using `gemini-flash-latest` alias — routes to whatever the current free-tier
+    // flash model is. Avoids prepaid billing failures on `gemini-2.5-flash`.
+    // To switch back to higher-quality 2.5, top up credits at
+    // https://ai.studio/projects and change the model name back.
+    const modelName = process.env.GEMINI_MODEL ?? "gemini-flash-latest";
     const model = client.getGenerativeModel({
-      model: "gemini-2.5-flash",
+      model: modelName,
       // Grounding via Google Search retrieval — returns citations
       tools: [{ googleSearchRetrieval: {} } as any],
     });
