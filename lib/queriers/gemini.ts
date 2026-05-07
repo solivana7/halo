@@ -1,25 +1,26 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
 import type { Citation, LLMQueryResult } from "./types";
 
-// Gemini grounding tool name changed across model generations:
-//   - Gemini 1.5 (flash, pro): `googleSearchRetrieval` (legacy)
-//   - Gemini 2.0+ (flash, pro): `googleSearch` (current)
-// The `gemini-flash-latest` alias routes to a 2.0+ model — passing
-// `googleSearchRetrieval` to a 2.0+ model gets rejected by the API
-// silently (the result returns empty answer + citations, which the
-// dashboard then filters out as "no answer"). Pin to `gemini-1.5-flash`
-// by default for stable grounding; auto-pick the right tool name based
-// on the configured model.
+// Direct REST call to the Gemini API — we bypass the @google/generative-ai
+// SDK because at v0.30 it serializes the grounding tool name in a way
+// that's been deprecated. Google replaced `google_search_retrieval` with
+// `google_search` for Gemini 2.0+ models, and 1.5 models are no longer
+// available on new API projects (404 Not Found). This direct path lets
+// us send the exact request shape the v1beta API expects.
 //
-// To switch to a 2.0+ model with grounding, set on Railway:
-//   GEMINI_MODEL=gemini-2.5-flash      (any 2.0+ model)
-const DEFAULT_MODEL = "gemini-1.5-flash";
+// Override the model with `GEMINI_MODEL` env var. Default routes to
+// whatever's current; the alias picks the API's recommended free-tier
+// flash model (2.5 currently as of mid-2025).
+const DEFAULT_MODEL = "gemini-flash-latest";
+const API_BASE = "https://generativelanguage.googleapis.com/v1beta/models";
 
-function isGemini2OrNewer(model: string): boolean {
-  // `gemini-2.0-...`, `gemini-2.5-...`, `gemini-3-...`. The `flash-latest`
-  // and `pro-latest` aliases also route to 2.0+ models as of late 2025.
-  return /\bgemini-(2|3|flash-latest|pro-latest)\b/i.test(model);
-}
+type GeminiResponse = {
+  candidates?: Array<{
+    content?: { parts?: Array<{ text?: string }> };
+    groundingMetadata?: {
+      groundingChunks?: Array<{ web?: { uri?: string; title?: string } }>;
+    };
+  }>;
+};
 
 export async function queryGemini(query: string): Promise<LLMQueryResult> {
   const key = process.env.GOOGLE_AI_API_KEY;
@@ -27,56 +28,48 @@ export async function queryGemini(query: string): Promise<LLMQueryResult> {
     return { surface: "gemini", query, answer: "", citations: [], error: "GOOGLE_AI_API_KEY not set" };
   }
 
-  try {
-    const client = new GoogleGenerativeAI(key);
-    // Defensive: GEMINI_MODEL env var has caused issues (stale value
-    // routing to a 2.0+ model the installed SDK can't pass `googleSearch`
-    // to). Override any env value pointing at flash-latest/2.x/3.x
-    // to the known-working 1.5-flash + googleSearchRetrieval combo.
-    let modelName = process.env.GEMINI_MODEL ?? DEFAULT_MODEL;
-    if (isGemini2OrNewer(modelName)) {
-      console.warn("[gemini] env model", modelName, "needs newer SDK. Forcing", DEFAULT_MODEL);
-      modelName = DEFAULT_MODEL;
-    }
-    const groundingTool = { googleSearchRetrieval: {} };
+  const modelName = process.env.GEMINI_MODEL ?? DEFAULT_MODEL;
+  const url = `${API_BASE}/${modelName}:generateContent`;
 
-    const model = client.getGenerativeModel({
-      model: modelName,
-      tools: [groundingTool as never],
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-goog-api-key": key,
+      },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: query }] }],
+        // The current grounding tool for Gemini 2.0+. The API rejects
+        // `google_search_retrieval` on these models. snake_case here is
+        // intentional — that's the wire format.
+        tools: [{ google_search: {} }],
+      }),
     });
 
-    const res: { response?: unknown } = await model.generateContent(query);
-    const response = res?.response as
-      | {
-          text?: () => string;
-          candidates?: Array<{
-            groundingMetadata?: {
-              groundingChunks?: Array<{ web?: { uri?: string; url?: string; title?: string } }>;
-              groundingAttributions?: Array<{ web?: { uri?: string; url?: string; title?: string } }>;
-            };
-          }>;
-        }
-      | undefined;
-    const answer: string = response?.text?.() ?? "";
+    if (!res.ok) {
+      const text = await res.text();
+      console.error("[gemini] http error", { model: modelName, status: res.status, body: text.slice(0, 500) });
+      return { surface: "gemini", query, answer: "", citations: [], error: `${res.status} ${text}` };
+    }
 
-    // Citations come back via grounding metadata. Both the v1.5
-    // `groundingAttributions` and the v2.0 `groundingChunks` shapes work.
+    const data = (await res.json()) as GeminiResponse;
+    const candidate = data?.candidates?.[0];
+    const answer = (candidate?.content?.parts ?? [])
+      .map((p) => p?.text ?? "")
+      .join("");
+
     const citations: Citation[] = [];
-    const metadata = response?.candidates?.[0]?.groundingMetadata;
-    const sources = metadata?.groundingChunks ?? metadata?.groundingAttributions ?? [];
-    for (const s of sources) {
-      const url = s?.web?.uri ?? s?.web?.url;
-      const title = s?.web?.title;
+    for (const chunk of candidate?.groundingMetadata?.groundingChunks ?? []) {
+      const url = chunk?.web?.uri;
+      const title = chunk?.web?.title;
       if (url) citations.push({ url, title });
     }
 
-    return { surface: "gemini", query, answer, citations, raw: response };
+    return { surface: "gemini", query, answer, citations, raw: data };
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
-    // Log to Railway logs — the dashboard filters result.error rows
-    // silently, so without this console.error we couldn't diagnose
-    // why the Gemini column shows "no answer" for every query.
-    console.error("[gemini] query failed:", { model: process.env.GEMINI_MODEL ?? DEFAULT_MODEL, error: msg });
+    console.error("[gemini] query failed:", { model: modelName, error: msg });
     return { surface: "gemini", query, answer: "", citations: [], error: msg };
   }
 }
