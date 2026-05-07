@@ -130,9 +130,22 @@ export function generatePrompts(profile: BusinessProfile, opts?: { max?: number 
     }
   }
 
-  // 3. Premium/discovery for the region
-  fill(PROMPT_TEMPLATES.find((p) => p.id === "luxury_wellness_region")!, { region: profile.region });
-  fill(PROMPT_TEMPLATES.find((p) => p.id === "exec_wellness_region")!, { region: profile.region });
+  // 3. Premium/discovery for the region — only generate these if region is
+  // a meaningful sub-state geography. Skip if user typed a state name like
+  // "California" since that's too broad to surface a specific business.
+  const STATE_NAMES = new Set([
+    "california", "ca", "new york", "ny", "texas", "tx", "florida", "fl",
+    "illinois", "il", "washington", "wa", "oregon", "or", "colorado", "co",
+    "arizona", "az", "nevada", "nv", "massachusetts", "ma",
+  ]);
+  if (!STATE_NAMES.has(profile.region.toLowerCase())) {
+    fill(PROMPT_TEMPLATES.find((p) => p.id === "luxury_wellness_region")!, { region: profile.region });
+    fill(PROMPT_TEMPLATES.find((p) => p.id === "exec_wellness_region")!, { region: profile.region });
+  } else {
+    // For state-named regions, anchor on the city instead
+    fill(PROMPT_TEMPLATES.find((p) => p.id === "luxury_wellness_region")!, { region: profile.city });
+    fill(PROMPT_TEMPLATES.find((p) => p.id === "exec_wellness_region")!, { region: profile.city });
+  }
 
   // 4. Outcome-based — use service.outcomes + user focus
   const conditions = new Set<string>();

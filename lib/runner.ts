@@ -28,7 +28,10 @@ export async function runScan(
   opts: RunOptions = {}
 ): Promise<ScanRecord> {
   const surfaces = opts.surfaces ?? Array.from(ALL_SURFACES);
-  const prompts = generatePrompts(profile, { max: opts.maxPrompts ?? 20 });
+  // Default cap: 8 prompts × 4 surfaces = 32 jobs. At concurrency 8 that
+  // fits under Railway's edge proxy ~60s timeout. Override via maxPrompts
+  // for the cron path (which has no proxy timeout).
+  const prompts = generatePrompts(profile, { max: opts.maxPrompts ?? 8 });
   const brand: BrandIdentity = {
     brand: profile.brand,
     domain: profile.domain,
@@ -71,7 +74,7 @@ export async function runScan(
         error: res.error,
       };
     },
-    opts.concurrency ?? 4
+    opts.concurrency ?? 8
   );
 
   const record: ScanRecord = {
