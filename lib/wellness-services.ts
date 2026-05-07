@@ -59,12 +59,6 @@ export const WELLNESS_SERVICES: WellnessService[] = [
     outcomes: ["circulation", "post exercise recovery", "lymphatic drainage", "detox"],
   },
   {
-    id: "rtms",
-    brandExact: "rTMS",
-    variants: ["transcranial magnetic stimulation", "TMS therapy", "brain stimulation"],
-    outcomes: ["mood", "focus", "depression"],
-  },
-  {
     id: "zyto",
     brandExact: "Zyto Bioenergetic Scanning",
     variants: ["bioenergetic scan", "energy scan", "body signaling scan"],
@@ -91,8 +85,14 @@ export const WELLNESS_SERVICES: WellnessService[] = [
   {
     id: "biofield",
     brandExact: "Biofield Energy Healing",
-    variants: ["biofield tuning", "tuning fork therapy", "sound healing"],
+    variants: ["biofield therapy", "energy biofield work"],
     outcomes: ["emotional release", "trauma recovery", "subtle body"],
+  },
+  {
+    id: "biofield_tuning",
+    brandExact: "Biofield Tuning",
+    variants: ["tuning fork therapy", "sound healing", "tuning forks", "frequency healing"],
+    outcomes: ["nervous system regulation", "emotional release", "stress recovery"],
   },
   {
     id: "bowen",
@@ -132,9 +132,39 @@ export const WELLNESS_SERVICES: WellnessService[] = [
   },
   {
     id: "massage",
-    brandExact: "Therapeutic Massage",
-    variants: ["massage", "deep tissue massage", "lymphatic massage"],
+    brandExact: "Massage",
+    variants: ["therapeutic massage", "deep tissue massage", "lymphatic massage", "Swedish massage"],
     outcomes: ["pain relief", "stress relief", "recovery"],
+  },
+  {
+    id: "cold_plunge",
+    brandExact: "Cold Plunge",
+    variants: ["cold plunge", "cold immersion", "ice bath", "cold water therapy"],
+    outcomes: ["inflammation", "athletic recovery", "metabolic boost", "vagal tone"],
+  },
+  {
+    id: "infrared_sauna",
+    brandExact: "Infrared Sauna",
+    variants: ["infrared sauna", "near infrared sauna", "full spectrum sauna"],
+    outcomes: ["detoxification", "circulation", "skin health", "deep relaxation"],
+  },
+  {
+    id: "traditional_sauna",
+    brandExact: "Traditional Sauna",
+    variants: ["dry sauna", "Finnish sauna", "wood sauna", "rock sauna"],
+    outcomes: ["cardiovascular health", "longevity", "detoxification", "stress reduction"],
+  },
+  {
+    id: "sensory_deprivation",
+    brandExact: "Sensory Deprivation Tank",
+    variants: ["sensory deprivation", "isolation tank", "float tank", "sensory deprivation chamber"],
+    outcomes: ["nervous system reset", "deep meditation", "creativity", "stress recovery"],
+  },
+  {
+    id: "epsom_salt_tank",
+    brandExact: "Epsom Salt Tank",
+    variants: ["epsom salt soak", "magnesium float", "epsom float bath", "salt float"],
+    outcomes: ["magnesium absorption", "muscle recovery", "nervous system reset", "deep relaxation"],
   },
   {
     id: "functional_medicine",

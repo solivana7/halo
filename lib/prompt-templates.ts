@@ -75,6 +75,7 @@ export type BusinessProfile = {
   region: string;             // e.g. "Bay Area", "Silicon Valley", "Peninsula"
   adjacentCities?: string[];  // e.g. ["Atherton", "Menlo Park", "Palo Alto"]
   serviceIds: string[];       // ids from WELLNESS_SERVICES
+  customServices?: string[];  // user-defined service names not in the catalog
   focusOutcomes?: string[];   // user-supplied conditions / focus areas
   competitors?: string[];     // brand names to track comparisons against
   audiences?: string[];       // e.g. ["executives", "athletes", "couples"]
@@ -90,7 +91,16 @@ export type GeneratedPrompt = {
 };
 
 export function generatePrompts(profile: BusinessProfile, opts?: { max?: number }): GeneratedPrompt[] {
-  const services = WELLNESS_SERVICES.filter((s) => profile.serviceIds.includes(s.id));
+  const catalogServices = WELLNESS_SERVICES.filter((s) => profile.serviceIds.includes(s.id));
+  // Synthesize custom user services as ad-hoc WellnessService entries so
+  // they participate in prompt generation alongside the catalog.
+  const customAsServices = (profile.customServices ?? []).map((name) => ({
+    id: `custom-${name.toLowerCase().replace(/\W+/g, "-")}`,
+    brandExact: name,
+    variants: [name.toLowerCase()],
+    outcomes: [] as string[],
+  }));
+  const services = [...catalogServices, ...customAsServices];
   const max = opts?.max ?? 30;
   const out: GeneratedPrompt[] = [];
 

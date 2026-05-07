@@ -13,6 +13,7 @@ export async function POST(req: Request) {
     region: body.region,
     adjacentCities: body.adjacentCities ?? [],
     serviceIds: body.serviceIds ?? [],
+    customServices: body.customServices ?? [],
     focusOutcomes: body.focusOutcomes ?? [],
     competitors: body.competitors ?? [],
     audiences: body.audiences ?? [],
