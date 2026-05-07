@@ -90,6 +90,33 @@ export type GeneratedPrompt = {
   meta: Record<string, string>;
 };
 
+// State-level geographies are too broad to surface a specific local business —
+// "REST Float Therapy in California" returns the top-3 hits in the entire
+// state and is unlikely to cite the user. We always substitute state names
+// with the user's specific city (and adjacent cities) instead. Pure token
+// waste and noisy "not cited" results otherwise.
+//
+// 50 US states + 2-letter abbreviations. Lowercase comparison.
+const STATE_NAMES = new Set([
+  "alabama", "al", "alaska", "ak", "arizona", "az", "arkansas", "ar",
+  "california", "ca", "colorado", "co", "connecticut", "ct", "delaware", "de",
+  "florida", "fl", "georgia", "ga", "hawaii", "hi", "idaho", "id",
+  "illinois", "il", "indiana", "in", "iowa", "ia", "kansas", "ks",
+  "kentucky", "ky", "louisiana", "la", "maine", "me", "maryland", "md",
+  "massachusetts", "ma", "michigan", "mi", "minnesota", "mn", "mississippi", "ms",
+  "missouri", "mo", "montana", "mt", "nebraska", "ne", "nevada", "nv",
+  "new hampshire", "nh", "new jersey", "nj", "new mexico", "nm", "new york", "ny",
+  "north carolina", "nc", "north dakota", "nd", "ohio", "oh", "oklahoma", "ok",
+  "oregon", "or", "pennsylvania", "pa", "rhode island", "ri",
+  "south carolina", "sc", "south dakota", "sd", "tennessee", "tn", "texas", "tx",
+  "utah", "ut", "vermont", "vt", "virginia", "va", "washington", "wa",
+  "west virginia", "wv", "wisconsin", "wi", "wyoming", "wy",
+]);
+
+function isStateName(value: string): boolean {
+  return STATE_NAMES.has(value.trim().toLowerCase());
+}
+
 export function generatePrompts(profile: BusinessProfile, opts?: { max?: number }): GeneratedPrompt[] {
   const catalogServices = WELLNESS_SERVICES.filter((s) => profile.serviceIds.includes(s.id));
   // Synthesize custom user services as ad-hoc WellnessService entries so
@@ -104,6 +131,15 @@ export function generatePrompts(profile: BusinessProfile, opts?: { max?: number 
   const max = opts?.max ?? 30;
   const out: GeneratedPrompt[] = [];
 
+  // The set of geographies we'll fan {region}-anchored templates across.
+  // If the user's `region` is a state name (too broad), drop it and use
+  // the city + every adjacent city the user specified — never queries
+  // the whole state. When region is a non-state geography (e.g. "Bay
+  // Area", "Silicon Valley"), use it as-is.
+  const regionIsState = isStateName(profile.region);
+  const cityList = [profile.city, ...(profile.adjacentCities ?? [])].filter(Boolean);
+  const regionAnchors: string[] = regionIsState ? cityList : [profile.region];
+
   const fill = (tpl: PromptTemplate, vars: Record<string, string>) => {
     let text = tpl.template;
     for (const [k, v] of Object.entries(vars)) text = text.replaceAll(`{${k}}`, v);
@@ -115,13 +151,18 @@ export function generatePrompts(profile: BusinessProfile, opts?: { max?: number 
     fill(t, { brand: profile.brand, city: profile.city });
   }
 
-  // 2. One brand-exact query per top service (variants drive discovery)
+  // 2. Brand-exact queries — fan across regionAnchors. When region is a
+  // state, this fans across each user-specified city (Redwood City, then
+  // each adjacentCity) instead of generating a single useless state query.
+  // When region is a non-state geo, this generates one regional query.
   for (const svc of services.slice(0, 5)) {
-    fill(
-      PROMPT_TEMPLATES.find((p) => p.id === "brand_exact_near_me")!,
-      { service: svc.brandExact, region: profile.region }
-    );
-    // Also query the top variant — captures generic search intent
+    for (const anchor of regionAnchors) {
+      fill(
+        PROMPT_TEMPLATES.find((p) => p.id === "brand_exact_near_me")!,
+        { service: svc.brandExact, region: anchor }
+      );
+    }
+    // Also one variant query for the home city (captures generic intent)
     if (svc.variants[0]) {
       fill(
         PROMPT_TEMPLATES.find((p) => p.id === "best_service_city")!,
@@ -130,49 +171,46 @@ export function generatePrompts(profile: BusinessProfile, opts?: { max?: number 
     }
   }
 
-  // 3. Premium/discovery for the region — only generate these if region is
-  // a meaningful sub-state geography. Skip if user typed a state name like
-  // "California" since that's too broad to surface a specific business.
-  const STATE_NAMES = new Set([
-    "california", "ca", "new york", "ny", "texas", "tx", "florida", "fl",
-    "illinois", "il", "washington", "wa", "oregon", "or", "colorado", "co",
-    "arizona", "az", "nevada", "nv", "massachusetts", "ma",
-  ]);
-  if (!STATE_NAMES.has(profile.region.toLowerCase())) {
-    fill(PROMPT_TEMPLATES.find((p) => p.id === "luxury_wellness_region")!, { region: profile.region });
-    fill(PROMPT_TEMPLATES.find((p) => p.id === "exec_wellness_region")!, { region: profile.region });
-  } else {
-    // For state-named regions, anchor on the city instead
-    fill(PROMPT_TEMPLATES.find((p) => p.id === "luxury_wellness_region")!, { region: profile.city });
-    fill(PROMPT_TEMPLATES.find((p) => p.id === "exec_wellness_region")!, { region: profile.city });
+  // 3. Premium/discovery — fan across regionAnchors with the same
+  // city-or-region logic. No more "luxury recovery lab in California".
+  for (const anchor of regionAnchors) {
+    fill(PROMPT_TEMPLATES.find((p) => p.id === "luxury_wellness_region")!, { region: anchor });
+    fill(PROMPT_TEMPLATES.find((p) => p.id === "exec_wellness_region")!, { region: anchor });
   }
 
-  // 4. Outcome-based — use service.outcomes + user focus
+  // 4. Outcome-based — use service.outcomes + user focus. One anchor per
+  // condition (the home city when region is a state, the region otherwise)
+  // to keep query volume sane.
   const conditions = new Set<string>();
   for (const svc of services) for (const o of svc.outcomes) conditions.add(o);
   for (const f of profile.focusOutcomes ?? []) conditions.add(f);
   for (const cond of [...conditions].slice(0, 3)) {
     fill(
       PROMPT_TEMPLATES.find((p) => p.id === "wellness_for_condition")!,
-      { condition: cond, region: profile.region }
+      { condition: cond, region: regionAnchors[0] }
     );
   }
 
-  // 5. Comparison queries against named competitors
+  // 5. Comparison queries — same pattern, one anchor per competitor.
   for (const c of (profile.competitors ?? []).slice(0, 3)) {
     fill(
       PROMPT_TEMPLATES.find((p) => p.id === "alternative_competitor")!,
-      { competitor: c, region: profile.region }
+      { competitor: c, region: regionAnchors[0] }
     );
   }
 
-  // 6. Adjacent cities — capture geographic spillover
-  for (const city of (profile.adjacentCities ?? []).slice(0, 2)) {
-    if (services[0]) {
-      fill(
-        PROMPT_TEMPLATES.find((p) => p.id === "best_service_city")!,
-        { service: services[0].variants[0] ?? services[0].brandExact, city }
-      );
+  // 6. Adjacent cities — when region was a state, regionAnchors above
+  // already covered every city, so skip this step (avoids duplicate
+  // queries). Only generate adjacent-city spillover queries when region
+  // was a non-state geography that didn't fan across cities.
+  if (!regionIsState) {
+    for (const city of (profile.adjacentCities ?? []).slice(0, 2)) {
+      if (services[0]) {
+        fill(
+          PROMPT_TEMPLATES.find((p) => p.id === "best_service_city")!,
+          { service: services[0].variants[0] ?? services[0].brandExact, city }
+        );
+      }
     }
   }
 
