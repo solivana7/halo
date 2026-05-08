@@ -48,7 +48,7 @@ export default async function DashboardIndex() {
                     <p>
                       {p.serviceIds.length} services tracked
                       {latest ? (
-                        <> · last scan {new Date(latest.ranAt).toLocaleDateString()} · <strong style={{ color: "var(--orange)" }}>{pct}% citation rate</strong></>
+                        <> · last scan {new Date(latest.ranAt).toLocaleDateString("en-US", { timeZone: "America/Los_Angeles" })} · <strong style={{ color: "var(--orange)" }}>{pct}% citation rate</strong></>
                       ) : (
                         <> · no scans yet</>
                       )}
