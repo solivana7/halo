@@ -27,7 +27,7 @@ export default async function OutreachPage({ params }: { params: Promise<{ id: s
             Who&rsquo;s <em>cited where you aren&rsquo;t.</em>
           </h1>
           <p className="subtitle">
-            Two lists. <strong>Publishers</strong> = pitch them for inclusion. <strong>Competitors</strong> = your SEO landscape, no pitch.
+            Two lists. <strong>Publishers</strong> = real outreach targets. <strong>Other wellness businesses</strong> = AI cited them on queries you missed (skip pitching, but useful for SEO).
           </p>
         </section>
 
@@ -70,7 +70,7 @@ export default async function OutreachPage({ params }: { params: Promise<{ id: s
                     </div>
                     <div className="stat">
                       <div className="stat-num">{competitors.length}</div>
-                      <div className="stat-label">Competitors</div>
+                      <div className="stat-label">Other Wellness Sites</div>
                     </div>
                     <div className="stat">
                       <div className="stat-num">{allTargets.reduce((n, t) => n + t.hits.length, 0)}</div>
@@ -133,20 +133,20 @@ export default async function OutreachPage({ params }: { params: Promise<{ id: s
                     ))
                   )}
 
-                  {/* COMPETITORS */}
+                  {/* OTHER WELLNESS SITES */}
                   {competitors.length > 0 && (
                     <>
                       <h2 className="section-title" style={{ marginTop: "var(--space-5)" }}>
-                        SEO competitors (no pitch)
+                        Other wellness sites cited (likely not pitchable)
                       </h2>
                       <p className="hint" style={{ marginBottom: "var(--space-3)" }}>
-                        These are competing wellness businesses AI is citing on queries you&rsquo;re missing. You can&rsquo;t pitch them — but knowing who they are tells you who to outrank.
+                        These domains were cited by AI on queries where {profile.brand} wasn&rsquo;t. We flagged them because the domain looks like another wellness business (contains words like &ldquo;float&rdquo;, &ldquo;wellness&rdquo;, &ldquo;spa&rdquo;) — but it&rsquo;s a heuristic guess, not a confirmed competitor. Review before treating as such.
                       </p>
 
                       {competitors.map((t) => (
                         <div key={t.domain} className="card" style={{ borderLeft: "3px solid var(--mid)" }}>
                           <span className="card-eye" style={{ color: "var(--mid)" }}>
-                            Competitor · {t.surfaces.map((s) => SURFACE_LABELS[s] ?? s).join(" · ")}
+                            {t.surfaces.map((s) => SURFACE_LABELS[s] ?? s).join(" · ")}
                           </span>
                           <h3>{t.domain}</h3>
                           <p>

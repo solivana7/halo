@@ -124,10 +124,10 @@ function classifyDomain(
     }
   }
 
-  // Wellness-business naming pattern
+  // Wellness-business naming pattern (heuristic, not a confirmed competitor)
   for (const hint of COMPETITOR_DOMAIN_HINTS) {
     if (domain.includes(hint)) {
-      return { kind: "competitor", reason: `Domain pattern "${hint}" suggests a competing wellness business` };
+      return { kind: "competitor", reason: `Domain contains "${hint}" — looks like another wellness business` };
     }
   }
 
