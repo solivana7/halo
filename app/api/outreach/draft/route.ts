@@ -62,7 +62,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "No scans yet — run a scan first." }, { status: 400 });
     }
 
-    const targets = buildOutreachTargets(latest, profile.domain);
+    const targets = buildOutreachTargets(latest, profile.domain, profile.competitors ?? []);
     const target = targets.find((t) => t.domain === domain);
     if (!target) {
       return NextResponse.json({ error: "Domain not in outreach list." }, { status: 404 });
