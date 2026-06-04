@@ -9,7 +9,9 @@ export const config = {
 
 export function middleware(req: NextRequest) {
   // Cron routes carry their own Bearer CRON_SECRET auth — don't block them.
-  if (req.nextUrl.pathname.startsWith("/api/cron")) {
+  // /api/healthz is the Railway healthcheck endpoint and must stay open.
+  const path = req.nextUrl.pathname;
+  if (path.startsWith("/api/cron") || path === "/api/healthz") {
     return NextResponse.next();
   }
 
